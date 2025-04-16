@@ -3,12 +3,54 @@
  */
 package tasktoo;
 
-public class App {
-    public String getGreeting() {
-        return "Hello World!";
-    }
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.DocumentBuilder;
+import org.w3c.dom.*;
 
+import java.io.File;
+
+public class App {
     public static void main(String[] args) {
-        System.out.println(new App().getGreeting());
+        try {
+            // Load the XML file
+            File file = new File("C:\\Users\\sixol\\OneDrive\\Desktop\\tasktoo\\app\\src\\main\\resources\\data.xml");
+
+            // Build Document
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(file);
+
+            doc.getDocumentElement().normalize();
+
+            // Get all <record> elements
+            NodeList recordList = doc.getElementsByTagName("record");
+
+            for (int i = 0; i < recordList.getLength(); i++) {
+                Node node = recordList.item(i);
+
+                if (node.getNodeType() == Node.ELEMENT_NODE) {
+                    Element element = (Element) node;
+
+                    String name = element.getElementsByTagName("name").item(0).getTextContent();
+                    String postalZip = element.getElementsByTagName("postalZip").item(0).getTextContent();
+                    String region = element.getElementsByTagName("region").item(0).getTextContent();
+                    String country = element.getElementsByTagName("country").item(0).getTextContent();
+                    String address = element.getElementsByTagName("address").item(0).getTextContent();
+                    String list = element.getElementsByTagName("list").item(0).getTextContent();
+
+                    // Print out field values
+                    System.out.println("Record " + (i + 1) + ":");
+                    System.out.println(" Name: " + name);
+                    System.out.println(" PostalZip: " + postalZip);
+                    System.out.println(" Region: " + region);
+                    System.out.println(" Country: " + country);
+                    System.out.println(" Address: " + address);
+                    System.out.println(" List: " + list);
+                    System.out.println("----------------------------------");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
