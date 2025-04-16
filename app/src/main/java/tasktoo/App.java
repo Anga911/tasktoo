@@ -3,120 +3,121 @@
  */
 package tasktoo;
 
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.DocumentBuilder;
-import org.w3c.dom.*;
+import org.xml.sax.*;
+import org.xml.sax.helpers.DefaultHandler;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 
 import java.io.File;
-import java.util.Scanner;
+import java.util.*;
 
 public class App {
+    private static final Set<String> ALLOWED_FIELDS = new HashSet<>(Arrays.asList(
+            "name", "postalzip", "region", "country", "address", "list"
+    ));
+
     public static void main(String[] args) {
         try {
-            // Load the XML file
-            File file = new File("C:\\Users\\sixol\\OneDrive\\Desktop\\tasktoo\\app\\src\\main\\resources\\data.xml");
-
-            // Build Document
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            Document doc = builder.parse(file);
-
-            doc.getDocumentElement().normalize();
-
-            // Get all <record> elements
-            NodeList recordList = doc.getElementsByTagName("record");
-
-            // User input for selected fields
+            // User input for fields
             Scanner scanner = new Scanner(System.in);
             System.out.println("Enter the fields you want to display (comma separated — name, postalZip, region, country, address, list): ");
             String input = scanner.nextLine();
-            String[] selectedFields = input.toLowerCase().split(",");
+            String[] inputFields = input.split(",");
 
-            // Validate and clean selected fields
-            String[] validFields = {"name", "postalzip", "region", "country", "address", "list"};
-
-            // Start JSON array
-            System.out.println("[");
-
-            for (int i = 0; i < recordList.getLength(); i++) {
-                Node node = recordList.item(i);
-
-                if (node.getNodeType() == Node.ELEMENT_NODE) {
-                    Element element = (Element) node;
-
-                    StringBuilder json = new StringBuilder();
-                    json.append("  {");
-
-                    boolean hasValidField = false;
-
-                    for (int j = 0; j < selectedFields.length; j++) {
-                        String field = selectedFields[j].trim();
-
-                        if (!isValidField(field, validFields)) {
-                            // Skip invalid fields and warn once at the start
-                            if (i == 0) {
-                                System.out.println("⚠️  Warning: Ignoring invalid field '" + field + "'");
-                            }
-                            continue;
-                        }
-
-                        String value = "";
-
-                        switch (field) {
-                            case "name":
-                                value = element.getElementsByTagName("name").item(0).getTextContent();
-                                break;
-                            case "postalzip":
-                                value = element.getElementsByTagName("postalZip").item(0).getTextContent();
-                                break;
-                            case "region":
-                                value = element.getElementsByTagName("region").item(0).getTextContent();
-                                break;
-                            case "country":
-                                value = element.getElementsByTagName("country").item(0).getTextContent();
-                                break;
-                            case "address":
-                                value = element.getElementsByTagName("address").item(0).getTextContent();
-                                break;
-                            case "list":
-                                value = element.getElementsByTagName("list").item(0).getTextContent();
-                                break;
-                        }
-
-                        json.append("\"").append(field).append("\": \"").append(value).append("\"");
-
-                        // If not the last field, add a comma
-                        if (j < selectedFields.length - 1) {
-                            json.append(", ");
-                        }
-
-                        hasValidField = true;
-                    }
-
-                    if (hasValidField) {
-                        // Clean up potential trailing commas
-                        String cleanJson = json.toString().replaceAll(",\\s*}", "}");
-                        System.out.println(cleanJson + (i < recordList.getLength() - 1 ? "," : ""));
-                    }
+            List<String> selectedFields = new ArrayList<>();
+            for (String field : inputFields) {
+                String trimmedField = field.trim().toLowerCase();
+                if (ALLOWED_FIELDS.contains(trimmedField)) {
+                    selectedFields.add(trimmedField);
+                } else {
+                    System.out.println("Warning: '" + field.trim() + "' is not a valid field and will be ignored.");
                 }
             }
 
-            // Close JSON array
+            if (selectedFields.isEmpty()) {
+                System.out.println("No valid fields were entered. Exiting program.");
+                return;
+            }
+
+            // Prepare SAX parser
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+            SAXParser saxParser = factory.newSAXParser();
+
+            // JSON array opening
+            System.out.println("[");
+            saxParser.parse(new File("C:\\Users\\sixol\\OneDrive\\Desktop\\tasktoo\\app\\src\\main\\resources\\data.xml"), new RecordHandler(selectedFields));
+            // JSON array closing
             System.out.println("]");
 
         } catch (Exception e) {
-            System.out.println("❌ Error: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    // Helper: check if a field is valid
-    public static boolean isValidField(String field, String[] validFields) {
-        for (String valid : validFields) {
-            if (valid.equals(field)) {
-                return true;
+    // SAX handler class
+    static class RecordHandler extends DefaultHandler {
+        private List<String> selectedFields;
+        private Map<String, String> currentRecord;
+        private StringBuilder charactersBuffer;
+        private String currentElement;
+        private boolean firstRecord = true;
+
+        RecordHandler(List<String> selectedFields) {
+            this.selectedFields = selectedFields;
+        }
+
+        @Override
+        public void startElement(String uri, String localName, String qName, Attributes attributes) {
+            if (qName.equals("record")) {
+                currentRecord = new LinkedHashMap<>();
+            } else if (currentRecord != null) {
+                currentElement = qName.toLowerCase();
+                charactersBuffer = new StringBuilder();
             }
         }
-        return false;
+
+        @Override
+        public void characters(char[] ch, int start, int length) {
+            if (charactersBuffer != null) {
+                charactersBuffer.append(ch, start, length);
+            }
+        }
+
+        @Override
+        public void endElement(String uri, String localName, String qName) {
+            if (qName.equals("record")) {
+                if (!firstRecord) {
+                    System.out.println(",");
+                } else {
+                    firstRecord = false;
+                }
+                printJson(currentRecord);
+            } else if (currentRecord != null && charactersBuffer != null) {
+                currentRecord.put(currentElement, charactersBuffer.toString().trim());
+            }
+        }
+
+        private void printJson(Map<String, String> record) {
+            StringBuilder json = new StringBuilder();
+            json.append("  {");
+            for (int i = 0; i < selectedFields.size(); i++) {
+                String field = selectedFields.get(i);
+                String value = record.getOrDefault(field, "");
+                json.append("\"").append(field).append("\": \"").append(escapeJson(value)).append("\"");
+                if (i < selectedFields.size() - 1) {
+                    json.append(", ");
+                }
+            }
+            json.append("}");
+            System.out.print(json);
+        }
+
+        // Escape JSON special characters
+        private String escapeJson(String value) {
+            return value.replace("\\", "\\\\")
+                        .replace("\"", "\\\"")
+                        .replace("\n", "\\n")
+                        .replace("\r", "\\r");
+        }
     }
 }
-
