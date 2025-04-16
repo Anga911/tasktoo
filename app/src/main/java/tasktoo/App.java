@@ -8,6 +8,7 @@ import javax.xml.parsers.DocumentBuilder;
 import org.w3c.dom.*;
 
 import java.io.File;
+import java.util.Scanner;
 
 public class App {
     public static void main(String[] args) {
@@ -25,30 +26,50 @@ public class App {
             // Get all <record> elements
             NodeList recordList = doc.getElementsByTagName("record");
 
+            // User input for selected fields
+            Scanner scanner = new Scanner(System.in);
+            System.out.println("Enter the fields you want to display (comma separated — name, postalZip, region, country, address, list): ");
+            String input = scanner.nextLine();
+            String[] selectedFields = input.toLowerCase().split(",");
+
             for (int i = 0; i < recordList.getLength(); i++) {
                 Node node = recordList.item(i);
 
                 if (node.getNodeType() == Node.ELEMENT_NODE) {
                     Element element = (Element) node;
 
-                    String name = element.getElementsByTagName("name").item(0).getTextContent();
-                    String postalZip = element.getElementsByTagName("postalZip").item(0).getTextContent();
-                    String region = element.getElementsByTagName("region").item(0).getTextContent();
-                    String country = element.getElementsByTagName("country").item(0).getTextContent();
-                    String address = element.getElementsByTagName("address").item(0).getTextContent();
-                    String list = element.getElementsByTagName("list").item(0).getTextContent();
-
-                    // Print out field values
                     System.out.println("Record " + (i + 1) + ":");
-                    System.out.println(" Name: " + name);
-                    System.out.println(" PostalZip: " + postalZip);
-                    System.out.println(" Region: " + region);
-                    System.out.println(" Country: " + country);
-                    System.out.println(" Address: " + address);
-                    System.out.println(" List: " + list);
+
+                    for (String field : selectedFields) {
+                        field = field.trim();
+
+                        switch (field) {
+                            case "name":
+                                System.out.println(" Name: " + element.getElementsByTagName("name").item(0).getTextContent());
+                                break;
+                            case "postalzip":
+                                System.out.println(" PostalZip: " + element.getElementsByTagName("postalZip").item(0).getTextContent());
+                                break;
+                            case "region":
+                                System.out.println(" Region: " + element.getElementsByTagName("region").item(0).getTextContent());
+                                break;
+                            case "country":
+                                System.out.println(" Country: " + element.getElementsByTagName("country").item(0).getTextContent());
+                                break;
+                            case "address":
+                                System.out.println(" Address: " + element.getElementsByTagName("address").item(0).getTextContent());
+                                break;
+                            case "list":
+                                System.out.println(" List: " + element.getElementsByTagName("list").item(0).getTextContent());
+                                break;
+                            default:
+                                System.out.println(" Unknown field: " + field);
+                        }
+                    }
                     System.out.println("----------------------------------");
                 }
             }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
