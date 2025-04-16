@@ -32,8 +32,11 @@ public class App {
             String input = scanner.nextLine();
             String[] selectedFields = input.toLowerCase().split(",");
 
+            // Validate and clean selected fields
+            String[] validFields = {"name", "postalzip", "region", "country", "address", "list"};
+
             // Start JSON array
-            System.out.println("["); 
+            System.out.println("[");
 
             for (int i = 0; i < recordList.getLength(); i++) {
                 Node node = recordList.item(i);
@@ -44,8 +47,18 @@ public class App {
                     StringBuilder json = new StringBuilder();
                     json.append("  {");
 
+                    boolean hasValidField = false;
+
                     for (int j = 0; j < selectedFields.length; j++) {
                         String field = selectedFields[j].trim();
+
+                        if (!isValidField(field, validFields)) {
+                            // Skip invalid fields and warn once at the start
+                            if (i == 0) {
+                                System.out.println("⚠️  Warning: Ignoring invalid field '" + field + "'");
+                            }
+                            continue;
+                        }
 
                         String value = "";
 
@@ -68,22 +81,23 @@ public class App {
                             case "list":
                                 value = element.getElementsByTagName("list").item(0).getTextContent();
                                 break;
-                            default:
-                                value = "Unknown Field";
                         }
 
                         json.append("\"").append(field).append("\": \"").append(value).append("\"");
 
-                        // Add comma between fields
+                        // If not the last field, add a comma
                         if (j < selectedFields.length - 1) {
                             json.append(", ");
                         }
+
+                        hasValidField = true;
                     }
 
-                    json.append("}");
-
-                    // Print JSON object
-                    System.out.println(json.toString() + (i < recordList.getLength() - 1 ? "," : ""));
+                    if (hasValidField) {
+                        // Clean up potential trailing commas
+                        String cleanJson = json.toString().replaceAll(",\\s*}", "}");
+                        System.out.println(cleanJson + (i < recordList.getLength() - 1 ? "," : ""));
+                    }
                 }
             }
 
@@ -91,7 +105,18 @@ public class App {
             System.out.println("]");
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("❌ Error: " + e.getMessage());
         }
     }
+
+    // Helper: check if a field is valid
+    public static boolean isValidField(String field, String[] validFields) {
+        for (String valid : validFields) {
+            if (valid.equals(field)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
+
