@@ -32,43 +32,63 @@ public class App {
             String input = scanner.nextLine();
             String[] selectedFields = input.toLowerCase().split(",");
 
+            // Start JSON array
+            System.out.println("["); 
+
             for (int i = 0; i < recordList.getLength(); i++) {
                 Node node = recordList.item(i);
 
                 if (node.getNodeType() == Node.ELEMENT_NODE) {
                     Element element = (Element) node;
 
-                    System.out.println("Record " + (i + 1) + ":");
+                    StringBuilder json = new StringBuilder();
+                    json.append("  {");
 
-                    for (String field : selectedFields) {
-                        field = field.trim();
+                    for (int j = 0; j < selectedFields.length; j++) {
+                        String field = selectedFields[j].trim();
+
+                        String value = "";
 
                         switch (field) {
                             case "name":
-                                System.out.println(" Name: " + element.getElementsByTagName("name").item(0).getTextContent());
+                                value = element.getElementsByTagName("name").item(0).getTextContent();
                                 break;
                             case "postalzip":
-                                System.out.println(" PostalZip: " + element.getElementsByTagName("postalZip").item(0).getTextContent());
+                                value = element.getElementsByTagName("postalZip").item(0).getTextContent();
                                 break;
                             case "region":
-                                System.out.println(" Region: " + element.getElementsByTagName("region").item(0).getTextContent());
+                                value = element.getElementsByTagName("region").item(0).getTextContent();
                                 break;
                             case "country":
-                                System.out.println(" Country: " + element.getElementsByTagName("country").item(0).getTextContent());
+                                value = element.getElementsByTagName("country").item(0).getTextContent();
                                 break;
                             case "address":
-                                System.out.println(" Address: " + element.getElementsByTagName("address").item(0).getTextContent());
+                                value = element.getElementsByTagName("address").item(0).getTextContent();
                                 break;
                             case "list":
-                                System.out.println(" List: " + element.getElementsByTagName("list").item(0).getTextContent());
+                                value = element.getElementsByTagName("list").item(0).getTextContent();
                                 break;
                             default:
-                                System.out.println(" Unknown field: " + field);
+                                value = "Unknown Field";
+                        }
+
+                        json.append("\"").append(field).append("\": \"").append(value).append("\"");
+
+                        // Add comma between fields
+                        if (j < selectedFields.length - 1) {
+                            json.append(", ");
                         }
                     }
-                    System.out.println("----------------------------------");
+
+                    json.append("}");
+
+                    // Print JSON object
+                    System.out.println(json.toString() + (i < recordList.getLength() - 1 ? "," : ""));
                 }
             }
+
+            // Close JSON array
+            System.out.println("]");
 
         } catch (Exception e) {
             e.printStackTrace();
